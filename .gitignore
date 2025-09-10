@@ -15,3 +15,9 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+downloads*
+direct_test*
+test-downloads*
+create_repo*
+test_workflow*
+WARP*

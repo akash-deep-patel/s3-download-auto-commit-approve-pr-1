@@ -8,7 +8,8 @@ import logging
 from routers.auth import router as auth_router
 from routers.workflow import router as workflow_router
 
-# logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+app_logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="S3 Download, Auto-Commit & Approve PR Workflow",
@@ -31,14 +32,18 @@ app.include_router(workflow_router)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger = logging.getLogger("uvicorn.access")
-    logger.info(f"Request: {request.method} {request.url}")
+    # Using the application logger instead of uvicorn.access to avoid KeyError on client_addr
+    # logger = logging.getLogger("uvicorn.access") # Original line
+    app_logger.info(f"Request: {request.method} {request.url}")
     try:
         response = await call_next(request)
-        logger.info(f"Response status: {response.status_code}")
+        app_logger.info(f"Response status: {response.status_code}")
         return response
+    except ValueError as e:
+        app_logger.warning(f"Bad Request: {str(e)}")
+        return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        app_logger.error(f"Error: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/health")
